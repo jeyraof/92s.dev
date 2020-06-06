@@ -1,0 +1,11 @@
+[package]
+name = "ninety_two_dev"
+version = "0.1.0"
+authors = ["Jaeyoung Lee <jaeyoung@monodiary.net>"]
+edition = "2018"
+
+[dependencies]
+rouille = "3.0.0"
+mysql = "18.2.0"
+tera = "1.3.0"
+serde = { version = "1.0.111", features = ["derive"] }

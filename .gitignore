@@ -1,0 +1,5 @@
+/target
+.envrc
+.env
+/src/assets/*.js
+/src/assets/*.css
