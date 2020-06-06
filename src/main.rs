@@ -43,9 +43,9 @@ fn main() -> std::result::Result<(), Error> {
     rouille::start_server("0.0.0.0:8088", move |request| {
         router!(request,
             (GET) (/) => {
+                let count: i32 = request.get_param("count").unwrap_or(String::from("5")).parse().unwrap_or(5);
                 let mut context = Context::new();
-                let records = get_records(&pool).unwrap();
-
+                let records = get_records(count, &pool).unwrap();
                 context.insert("records", &records);
                 let content = templates.render("index.html", &context).expect("render failed");
                 Response::html(content)
@@ -80,15 +80,21 @@ fn get_database() -> Result<Pool, Error> {
     Ok(Pool::new(database_url)?)
 }
 
-fn get_records(pool: &Pool) -> Result<Vec<Record>, Error> {
+fn get_records(num: i32, pool: &Pool) -> Result<Vec<Record>, Error> {
     let mut conn = pool.get_conn()?;
     let items: Vec<Record> = conn.query(
-        r#"
-        SELECT id, slug, url, created_at, last_used_at
-        FROM records
-        ORDER BY last_used_at DESC
-        LIMIT 5;
-        "#, 
+        format!(
+            r#"
+            SELECT id, slug, url, created_at, last_used_at
+            FROM records
+            USE INDEX(records_last_used_at_id_index)
+            ORDER BY 
+                last_used_at DESC,
+                id DESC
+            LIMIT {};
+            "#,
+            num
+        )
     ).unwrap();
     Ok(items)
 }
