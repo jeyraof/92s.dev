@@ -25,7 +25,6 @@ impl FromRow for Record {
 type Error = Box<dyn std::error::Error>;
 
 fn response_by(templates: &Tera, code: i32) -> Response {
-    // templates.get_template(template_name)
     let context = Context::new();
     let content = templates.render(&format!("errors/{}.html", code), &context).unwrap();
     Response {
