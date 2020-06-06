@@ -1,9 +1,18 @@
 <html>
-    <head>92s.dev</head>
+    <head>
+        <title>92s.dev</title>
+    </head>
     <body>
         <ul>
-        {% for slug in slugs %}
-            <li>{{ slug }}</li>
+        {% for record in records %}
+            <li>
+                <p>
+                    <a href="/{{ record.slug }}">/{{record.slug}}</a> 
+                    => 
+                    <a href="{{ record.url }}">{{record.url}}</a>
+                </p>
+                <p>last_used_at: {{ record.last_used_at }}</p>
+            </li>
         {% endfor %}
         </ul>
     </body>

@@ -831,6 +831,7 @@ dependencies = [
 name = "ninety_two_dev"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "mysql",
  "rouille",
  "serde",

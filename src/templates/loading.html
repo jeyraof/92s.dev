@@ -3,12 +3,15 @@
         <title>92s.dev</title>
     </head>
     <body>
-        {% if record %}
         <div>
-            {{ record.url }}
+            <p>
+                You accessed 
+                <a href="/{{ record.slug }}">/{{record.slug}}</a> 
+                => 
+                <a href="{{ record.url }}">{{record.url}}</a>
+            </p>
+                
+            <p>last_used_at: {{ record.last_used_at }}</p>
         </div>
-        {% else %}
-        <div>찾을 수 없음</div>
-        {% endif %}
     </body>
 </html>
