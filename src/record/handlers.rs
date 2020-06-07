@@ -14,7 +14,7 @@ pub fn fetch_recent_used(request: &Request, templates: &Tera, pool: &Pool) -> Re
 }
 
 pub fn fetch_by_slug(_request: &Request, templates: &Tera, pool: &Pool, slug: String) -> Response {
-    let record = Record::fetch_by_slug(slug, &pool).unwrap();
+    let record = Record::fetch_by_slug(&slug, &pool).unwrap();
     match record {
         Some(r) => {
             let _ = Record::update_last_used(r.id, &pool);

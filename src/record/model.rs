@@ -41,7 +41,7 @@ impl Record {
         match record {
             Ok(r) => Ok(r),
             Err(MysqlError::MySqlError(_me)) => {
-                let r = Record::fetch_by_slug(json.slug.clone(), &pool).unwrap();
+                let r = Record::fetch_by_slug(&json.slug, &pool).unwrap();
                 return Ok(r)
             },
             Err(_) => Ok(None)
@@ -65,7 +65,7 @@ impl Record {
         ).unwrap();
         Ok(items)
     }
-    pub fn fetch_by_slug(slug: String, pool: &Pool) -> Result<Option<Record>, Error> {
+    pub fn fetch_by_slug(slug: &String, pool: &Pool) -> Result<Option<Record>, Error> {
         let mut conn = pool.get_conn()?;
         let record: Option<Record> = conn.query_first(
             format!(
