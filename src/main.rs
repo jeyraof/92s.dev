@@ -13,7 +13,7 @@ fn main() -> std::result::Result<(), errors::Error> {
     rouille::start_server("0.0.0.0:8088", move |request| {
         router!(request,
             (GET) (/) => { record::handlers::fetch_recent_used(request, &templates, &pool) },
-            (GET) (/{slug: String}) => { record::handlers::fetch_by_slug(request, &templates, &pool, slug) },
+            (GET) (/{slug: String}) => { record::handlers::fetch_by_slug(request, &templates, &pool, &slug) },
             (POST) (/new) => { record::handlers::create(request, &templates, &pool) },
             _ => response_by(&templates, 404)
         )

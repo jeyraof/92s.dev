@@ -13,7 +13,7 @@ pub fn fetch_recent_used(request: &Request, templates: &Tera, pool: &Pool) -> Re
     Response::html(content)
 }
 
-pub fn fetch_by_slug(_request: &Request, templates: &Tera, pool: &Pool, slug: String) -> Response {
+pub fn fetch_by_slug(_request: &Request, templates: &Tera, pool: &Pool, slug: &String) -> Response {
     let record = Record::fetch_by_slug(&slug, &pool).unwrap();
     match record {
         Some(r) => {
