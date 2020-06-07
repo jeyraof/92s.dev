@@ -32,16 +32,9 @@ impl Record {
     pub fn create(json: &RecordJSON, pool: &Pool) -> Result<Option<Record>, Error> {
         let mut conn = pool.get_conn()?;
 
-        let record: Result<Option<Record>, MysqlError> = conn.query_first(
-            format!(
-                r#"
-                INSERT INTO
-                records (slug, url)
-                VALUES ('{}', '{}')
-                "#,
-                json.slug,
-                json.url,
-            )
+        let record: Result<Option<Record>, MysqlError> = conn.exec_first(
+            "INSERT INTO records (slug, url) VALUES (?, ?)",
+            (&json.slug, &json.url),
         );
 
         // TODO: 에러 종류에 따라 핸들링을 다르게 적용. (커스텀 에러를 만들어야 할 것 같다.)
