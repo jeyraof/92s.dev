@@ -1,30 +1,37 @@
 use rouille::{Response, ResponseBody, router};
 use tera::{Tera, Context};
-use mysql::{Pool, FromRowError, Row};
-use mysql::prelude::*;
+use mysql::Pool;
 use std::env;
-use serde::{Serialize, Deserialize};
-use chrono::{NaiveDateTime, Utc};
 
-#[derive(Serialize, Deserialize)]
-struct Record {
-    id: i32,
-    slug: String,
-    url: String,
-    created_at: NaiveDateTime,
-    last_used_at: Option<NaiveDateTime>,
+mod record;
+mod errors;
+
+fn main() -> std::result::Result<(), errors::Error> {
+    let templates = get_templates()?;
+    let pool = get_db_pool()?;
+
+    rouille::start_server("0.0.0.0:8088", move |request| {
+        router!(request,
+            (GET) (/) => { record::handlers::fetch_recent_used(request, &templates, &pool) },
+            (GET) (/{slug: String}) => { record::handlers::fetch_by_slug(request, &templates, &pool, slug) },
+            (POST) (/new) => { record::handlers::create(request, &templates, &pool) },
+            _ => response_by(&templates, 404)
+        )
+    });
 }
 
-impl FromRow for Record {
-    fn from_row_opt(row: Row) -> Result<Self, FromRowError> {
-        let (id, slug, url, created_at, last_used_at) = FromRow::from_row_opt(row)?;
-        Ok(Self { id, slug, url, created_at, last_used_at })
-    }
+fn get_templates() -> Result<Tera, errors::Error> {
+    let mut templates = Tera::new("src/templates/**/*")?;
+    templates.autoescape_on(vec!["html"]);
+    Ok(templates)
 }
 
-type Error = Box<dyn std::error::Error>;
+fn get_db_pool() -> Result<Pool, errors::Error> {
+    let database_url = env::var("DATABASE_URL")?;
+    Ok(Pool::new(database_url)?)
+}
 
-fn response_by(templates: &Tera, code: i32) -> Response {
+pub fn response_by(templates: &Tera, code: i32) -> Response {
     let context = Context::new();
     let content = templates.render(&format!("errors/{}.html", code), &context).unwrap();
     Response {
@@ -33,99 +40,4 @@ fn response_by(templates: &Tera, code: i32) -> Response {
         data: ResponseBody::from_string(content),
         upgrade: None,
     }
-}
-
-fn main() -> std::result::Result<(), Error> {
-    let templates = get_templates()?;
-    let pool = get_database()?;
-
-    rouille::start_server("0.0.0.0:8088", move |request| {
-        router!(request,
-            (GET) (/) => {
-                let count: i32 = request.get_param("count").unwrap_or(String::from("5")).parse().unwrap_or(5);
-                let mut context = Context::new();
-                let records = get_records(count, &pool).unwrap();
-                context.insert("records", &records);
-                let content = templates.render("index.html", &context).expect("render failed");
-                Response::html(content)
-            },
-            (GET) (/{slug: String}) => {
-                let record = get_record_by(slug, &pool).unwrap();
-                match record {
-                    Some(r) => {
-                        let _ = touch_record(r.id, &pool);
-                        let mut context = Context::new();
-                        context.insert("record", &r);
-                        let content = templates.render("loading.html", &context).expect("render failed");
-                        Response::html(content)
-                    },
-                    None => response_by(&templates, 404)
-                }
-
-            },
-            _ => response_by(&templates, 404)
-        )
-    });
-}
-
-fn get_templates() -> Result<Tera, Error> {
-    let mut templates = Tera::new("src/templates/**/*")?;
-    templates.autoescape_on(vec!["html"]);
-    Ok(templates)
-}
-
-fn get_database() -> Result<Pool, Error> {
-    let database_url = env::var("DATABASE_URL")?;
-    Ok(Pool::new(database_url)?)
-}
-
-fn get_records(num: i32, pool: &Pool) -> Result<Vec<Record>, Error> {
-    let mut conn = pool.get_conn()?;
-    let items: Vec<Record> = conn.query(
-        format!(
-            r#"
-            SELECT id, slug, url, created_at, last_used_at
-            FROM records
-            USE INDEX(records_last_used_at_id_index)
-            ORDER BY 
-                last_used_at DESC,
-                id DESC
-            LIMIT {};
-            "#,
-            num
-        )
-    ).unwrap();
-    Ok(items)
-}
-
-fn get_record_by(slug: String, pool: &Pool) -> Result<Option<Record>, Error> {
-    let mut conn = pool.get_conn()?;
-    let record: Option<Record> = conn.query_first(
-        format!(
-            r#"
-            SELECT id, slug, url, created_at, last_used_at
-            FROM records
-            WHERE slug = '{}'
-            LIMIT 1
-            "#,
-            slug
-        )
-    ).unwrap();
-    Ok(record)
-}
-
-fn touch_record(id: i32, pool: &Pool) -> Result<Option<Record>, Error> {
-    let mut conn = pool.get_conn().unwrap();
-    let record: Option<Record> = conn.query_first(
-        format!(
-            r#"
-            UPDATE records
-            SET last_used_at = '{}'
-            WHERE id = {}
-            "#,
-            Utc::now().naive_utc(),
-            id,
-        )
-    ).unwrap();
-    Ok(record)
 }
