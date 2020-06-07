@@ -47,52 +47,29 @@ impl Record {
             Err(_) => Ok(None)
         }
     }
-    pub fn fetch_last_used(count: i32, pool: &Pool) -> Result<Vec<Record>, Error> {
+    pub fn fetch_last_used(count: &i32, pool: &Pool) -> Result<Vec<Record>, Error> {
         let mut conn = pool.get_conn()?;
-        let items: Vec<Record> = conn.query(
-            format!(
-                r#"
-                SELECT id, slug, url, created_at, last_used_at
-                FROM records
-                USE INDEX(records_last_used_at_id_index)
-                ORDER BY 
-                last_used_at DESC,
-                id DESC
-                LIMIT {};
-                "#,
-                count
-            )
+        let items: Vec<Record> = conn.exec(
+            "SELECT id, slug, url, created_at, last_used_at FROM records USE INDEX(records_last_used_at_id_index) ORDER BY last_used_at DESC, id DESC LIMIT ?",
+            (&count, ),
         ).unwrap();
         Ok(items)
     }
     pub fn fetch_by_slug(slug: &String, pool: &Pool) -> Result<Option<Record>, Error> {
         let mut conn = pool.get_conn()?;
-        let record: Option<Record> = conn.query_first(
-            format!(
-                r#"
-                SELECT id, slug, url, created_at, last_used_at
-                FROM records
-                WHERE slug = '{}'
-                LIMIT 1
-                "#,
-                slug
-            )
+        let record: Option<Record> = conn.exec_first(
+            "SELECT id, slug, url, created_at, last_used_at FROM records WHERE slug = ? LIMIT 1",
+            (&slug, ),
         ).unwrap();
         Ok(record)
     }
-    pub fn update_last_used(id: i32, pool: &Pool) -> Result<Option<Record>, Error> {
+    pub fn update_last_used(id: &i32, pool: &Pool) -> Result<Option<Record>, Error> {
         let mut conn = pool.get_conn().unwrap();
-        let record: Option<Record> = conn.query_first(
-            format!(
-                r#"
-                UPDATE records
-                SET last_used_at = '{}'
-                WHERE id = {}
-                "#,
-                Utc::now().naive_utc(),
-                id,
-            )
+        let record: Option<Record> = conn.exec_first(
+            "UPDATE records SET last_used_at = ? WHERE id = ?",
+            (Utc::now().naive_utc(), &id),
         ).unwrap();
         Ok(record)
     }
 }
+
