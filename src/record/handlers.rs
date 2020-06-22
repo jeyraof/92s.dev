@@ -28,24 +28,21 @@ pub fn fetch_by_slug(_request: &Request, templates: &Tera, pool: &Pool, slug: &S
     }
 }
 
-pub fn create(request: &Request, templates: &Tera, pool: &Pool) -> Response {
+pub fn create(request: &Request, _: &Tera, pool: &Pool) -> Response {
     let json: RecordJSON = try_or_400!(rouille::input::json_input(request));
     let creation = Record::create(&json, &pool);
-
+    
     match creation {
-        Ok(r) => Response::json(&json),
-        Err(errors::NinetyTwoError::MySqlError(e)) => {
-            match &json.overwrite {
-                true => {
-                    let updation = Record::update(&json, &pool);
-                    match updation {
-                        Ok(r) => Response::json(&json),
-                        _ => json_error(&ErrorResponse{code: 500, http_status: 500})
-                    }
-                },
-                false => json_error(&ErrorResponse{code: 409, http_status: 409})
+        Ok(_) => Response::json(&json),
+        Err(errors::NinetyTwoError::MySqlError(_)) => {
+            if !(&json.overwrite) { return json_error(&ErrorResponse{code: 409, http_status: 409}) }
+
+            let updation = Record::update(&json, &pool);
+            match updation {
+                Ok(_) => Response::json(&json),
+                _ => json_error(&ErrorResponse{code: 500, http_status: 500})
             }
-        }
-        Err(e) => json_error(&ErrorResponse{code: 409, http_status: 409})
+        },
+        Err(_) => json_error(&ErrorResponse{code: 409, http_status: 409})
     }
 }
