@@ -39,22 +39,8 @@ impl Record {
         );
 
         match creation {
-            Ok(r) => {
-                return Ok(r)
-            },
-            Err(mysql::Error::MySqlError(e)) => {
-                match &json.overwrite {
-                    true => { 
-                        return Self::update(&json, &pool) 
-                    },
-                    false => { 
-                        return Err(e.into()) 
-                    }
-                }
-            },
-            Err(e) => { 
-                return Err(e.into()) 
-            }
+            Ok(r) => Ok(r),
+            Err(e) => Err(e.into())
         }
     }
     pub fn update(json: &RecordJSON, pool: &Pool) -> Result<Option<Record>> {
@@ -65,12 +51,8 @@ impl Record {
         );
 
         match update {
-            Ok(r) => { 
-                return Ok(r)
-            },
-            Err(e) => {
-                return Err(e.into())
-            }
+            Ok(r) => Ok(r),
+            Err(e) => Err(e.into())
         }
     }
     pub fn fetch_last_used(count: &i32, pool: &Pool) -> Result<Vec<Record>> {

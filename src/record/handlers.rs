@@ -1,5 +1,6 @@
 use crate::record::{Record, RecordJSON};
 use crate::{response_by, json_error, ErrorResponse};
+use crate::errors;
 use rouille::{Request, Response, try_or_400};
 use tera::{Tera, Context};
 use mysql::Pool;
@@ -32,16 +33,25 @@ pub fn create(request: &Request, templates: &Tera, pool: &Pool) -> Response {
     let creation = Record::create(&json, &pool);
 
     match creation {
-        Ok(ro) => {
-            match ro {
-                Some(r) => {
-                    Response::json(&json)
-                },
-                None => {
-                    json_error(&ErrorResponse{code: 500, http_status: 500})
+        Ok(r) => Response::json(&json),
+        Err(e) => {
+            match e {
+                errors::NinetyTwoError::MySqlError(e) => {
+                    match &json.overwrite {
+                        true => {
+                            let updation = Record::update(&json, &pool);
+                            match updation {
+                                Ok(r) => Response::json(&json),
+                                _ => json_error(&ErrorResponse{code: 500, http_status: 500})
+                            }
+                        },
+                        false => json_error(&ErrorResponse{code: 409, http_status: 409})
+                    }
+                }
+                _ => {
+                    json_error(&ErrorResponse{code: 409, http_status: 409})
                 }
             }
-        },
-        Err(e) => json_error(&ErrorResponse{code: 409, http_status: 409})
+        }
     }
 }
