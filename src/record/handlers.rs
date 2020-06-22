@@ -1,5 +1,5 @@
 use crate::record::{Record, RecordJSON};
-use crate::response_by;
+use crate::{response_by, json_error, ErrorResponse};
 use rouille::{Request, Response, try_or_400};
 use tera::{Tera, Context};
 use mysql::Pool;
@@ -29,9 +29,19 @@ pub fn fetch_by_slug(_request: &Request, templates: &Tera, pool: &Pool, slug: &S
 
 pub fn create(request: &Request, templates: &Tera, pool: &Pool) -> Response {
     let json: RecordJSON = try_or_400!(rouille::input::json_input(request));
-    let record = Record::create(&json, &pool).unwrap();
-    match record {
-        Some(r) => Response::redirect_302(format!("/{}", r.slug)),
-        None => response_by(&templates, 404)
+    let creation = Record::create(&json, &pool);
+
+    match creation {
+        Ok(ro) => {
+            match ro {
+                Some(r) => {
+                    Response::json(&json)
+                },
+                None => {
+                    json_error(&ErrorResponse{code: 500, http_status: 500})
+                }
+            }
+        },
+        Err(e) => json_error(&ErrorResponse{code: 409, http_status: 409})
     }
 }
