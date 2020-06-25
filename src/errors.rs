@@ -8,10 +8,15 @@ pub enum NinetyTwoError {
     RecordAlreadyExist,
 
     // authentication
+    #[error("access token not found")]
+    AccessTokenNotFound,
     #[error("access token expired")]
     AccessTokenExpired,
     #[error("invalid access token")]
     InvalidAccessToken,
+
+    #[error("refresh token not found")]
+    RefreshTokenNotFound,
     #[error("refresh token expired")]
     RefreshTokenExpired,
     #[error("invalid refresh token")]
@@ -20,9 +25,6 @@ pub enum NinetyTwoError {
     // mysql
     #[error("mysql error: {0}")]
     MySqlError(#[from] mysql::error::Error),
-
-    #[error("mysql error: {0}")]
-    MysqlError(#[from] mysql::error::MySqlError),
 }
 
 pub type Result<T> = std::result::Result<T, NinetyTwoError>;

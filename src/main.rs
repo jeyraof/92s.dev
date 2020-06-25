@@ -5,7 +5,9 @@ use mysql::Pool;
 use std::env;
 use serde_json;
 
+mod auth;
 mod record;
+
 mod errors;
 use errors::Result;
 
